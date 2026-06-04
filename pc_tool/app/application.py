@@ -8,9 +8,11 @@ from typing import Optional
 from PySide6.QtCore import QObject, Signal
 
 from app.theme import ThemeManager
+
+VERSION = "0.2.0"
 from core.constants import WEOConfig, load_config
 
-APP_NAME = "奥贝之眼 · WEO"
+APP_NAME = f"奥贝之眼 · WEO v{VERSION}"
 CONFIG_DIR = os.path.join(os.environ.get("APPDATA", os.path.expanduser("~")), "WEO")
 CONFIG_FILE = "weo_pc_config.json"
 

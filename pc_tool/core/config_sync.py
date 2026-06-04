@@ -1,4 +1,4 @@
-"""WEO config push/pull over ADB — stateless, uses new AdbClient."""
+﻿"""WEO config push/pull over ADB — stateless, uses new AdbClient."""
 
 import json
 import os
@@ -17,14 +17,13 @@ class ConfigSync:
     def push(self, config_dict: dict, serial: str | None = None) -> bool:
         """Write config_dict to the device and broadcast an invalidate action."""
         with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".json", delete=False, encoding="utf-8"
+            mode="w", suffix=".json", delete=True, encoding="utf-8"
         ) as f:
             json.dump(config_dict, f, ensure_ascii=False, indent=2)
-            tmp_path = f.name
-        try:
+            f.flush()
             remote = f"{self._cfg.config_device_dir}/{self._cfg.config_device_file}"
             self._adb.shell(f"mkdir -p {self._cfg.config_device_dir}", serial=serial)
-            ok = self._adb.push(tmp_path, remote, serial=serial)
+            ok = self._adb.push(f.name, remote, serial=serial)
             if ok:
                 self._adb.broadcast(
                     self._cfg.config_broadcast_action,
@@ -32,13 +31,6 @@ class ConfigSync:
                     serial=serial,
                 )
             return ok
-        except AdbError:
-            return False
-        finally:
-            try:
-                os.unlink(tmp_path)
-            except OSError:
-                pass
 
     def pull(self, serial: str | None = None) -> dict | None:
         """Read config from device. Falls back to adb pull if shell cat fails."""

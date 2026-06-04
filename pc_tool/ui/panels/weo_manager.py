@@ -15,6 +15,7 @@ from PySide6.QtWidgets import (
 from app.application import App
 from core.config_sync import ConfigSync
 from core.deploy import deploy, check_status, uninstall_only
+from urllib.parse import urlparse
 
 class _PushPullThread(QThread):
     finished = Signal(bool, str, object)
@@ -353,8 +354,32 @@ class WeoManagerPanel(QWidget):
                 self._provider_combo.setCurrentIndex(idx)
                 break
 
+
+    def _validate_config(self) -> str | None:
+        """Return error message if config is invalid, None if OK."""
+        cfg = self.get_config_dict()
+        url = cfg.get("apiBaseUrl", "").strip()
+        key = cfg.get("apiKey", "").strip()
+        if not url:
+            return "请填写 API 地址"
+        parsed = urlparse(url)
+        if parsed.scheme not in ("http", "https"):
+            return "API 地址必须以 http:// 或 https:// 开头"
+        if "." not in (parsed.netloc or ""):
+            return "API 地址格式无效"
+        if not key:
+            return "请填写 API Key"
+        if len(key) < 8:
+            return "API Key 太短（至少 8 个字符）"
+        return None
+
     # push/pull via QThread
     def _on_push(self):
+        err = self._validate_config()
+        if err:
+            self._output.append(f"\u2717 {err}")
+            self.log_line.emit(f"[\u914D\u7F6E] \u2717 {err}")
+            return
         if self._thread and self._thread.isRunning():
             return
         self._push_btn.setEnabled(False)
@@ -480,6 +505,10 @@ class WeoManagerPanel(QWidget):
             self.log_line.emit("[\u90E8\u7F72] \u65E0\u8BBE\u5907\u8FDE\u63A5")
             return
 
+        err = self._validate_config()
+        if err:
+            self._output.append(f"\u2717 {err}")
+            return
         apk_path = self._current_apk_path()
         if not apk_path.exists():
             self._output.append("\u2717 APK \u4E0D\u5B58\u5728: " + str(apk_path))

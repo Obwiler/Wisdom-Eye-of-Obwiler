@@ -6,7 +6,7 @@ from PySide6.QtWidgets import (
     QSplitter, QPushButton, QSizePolicy,
 )
 
-from app.application import App
+from app.application import App, APP_NAME
 from core.device import DeviceInfo
 from ui.widgets.device_bar import DeviceBar
 from ui.widgets.log_panel import LogPanel
