@@ -124,8 +124,8 @@ As all data processing occurs locally and we do not collect your personal inform
 
 If you have any questions, comments, or suggestions regarding this privacy policy, please contact us at:
 
-- **邮箱 / Email**: obwiler@proton.me
-- **GitHub**: https://github.com/obwiler
+- **邮箱 / Email**: dev@obwiler.com
+- **GitHub**: https://github.com/obwiler/weo
 
 ---
 

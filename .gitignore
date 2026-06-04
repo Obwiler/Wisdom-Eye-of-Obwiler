@@ -58,3 +58,11 @@ pc_tool/lib/scrcpy/
 .env
 .env.*
 credentials.json
+
+# Codex
+.codex/
+
+# Screenshots
+screen.jpg
+screen.png
+screenshot*.png
