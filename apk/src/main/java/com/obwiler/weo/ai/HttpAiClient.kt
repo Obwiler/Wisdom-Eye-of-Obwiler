@@ -78,7 +78,15 @@ class HttpAiClient : AiClient {
                 if (config.systemPrompt.isNotBlank()) {
                     put(JSONObject().apply {
                         put("role", "system")
-                        put("content", config.systemPrompt)
+                        // Append language enforcement so the model always
+                        // responds in Chinese regardless of config encoding.
+                        put("content", config.systemPrompt + "  (Respond in Simplified Chinese only. 你必须用简体中文回答。)")
+                    })
+                } else {
+                    // Fallback system prompt with language enforcement
+                    put(JSONObject().apply {
+                        put("role", "system")
+                        put("content", "Respond in Simplified Chinese only. 你必须用简体中文回答。")
                     })
                 }
                 put(JSONObject().apply {
