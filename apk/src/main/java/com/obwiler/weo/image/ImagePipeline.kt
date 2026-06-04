@@ -31,7 +31,7 @@ object ImagePipeline {
         // Use inSampleSize on decode is better but would require changing
         // the call site; scaling here prevents OOM on repeated captures.
         val maxDim = maxOf(current.width, current.height)
-        val targetMax = 1280
+        val targetMax = 1920
         if (maxDim > targetMax) {
             val scale = targetMax.toFloat() / maxDim
             val newW = (current.width * scale).toInt()

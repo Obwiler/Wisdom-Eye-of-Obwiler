@@ -99,8 +99,10 @@ class App(QObject):
     def shutdown(self):
         self._save_persistent_config()
 
-    def save_state(self, key: str, value):
+    def save_state(self, key: str, value, *, persist: bool = True):
         self._persistent[key] = value
+        if persist:
+            self._save_persistent_config()
 
     def load_state(self, key: str, default=None):
         return self._persistent.get(key, default)
@@ -110,7 +112,7 @@ class App(QObject):
         path = os.path.join(CONFIG_DIR, CONFIG_FILE)
         if os.path.exists(path):
             try:
-                with open(path, "r", encoding="utf-8") as f:
+                with open(path, "r", encoding="utf-8-sig") as f:
                     return json.load(f)
             except (json.JSONDecodeError, OSError):
                 pass

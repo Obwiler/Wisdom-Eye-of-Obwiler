@@ -299,7 +299,7 @@ class MainActivity : ComponentActivity() {
             // Decode at 1/2 resolution to halve memory on the 1.8GB device.
             // The RG-glasses capture at 2048x1536; inSampleSize=2 yields
             // 1024x768 which is plenty for AI analysis.
-            val opts = Options().apply { inSampleSize = 1 }
+            val opts = Options().apply { inSampleSize = 2 }
             val src = BitmapFactory.decodeByteArray(rawBytes, 0, rawBytes.size, opts)
                 ?: throw RuntimeException("Bitmap decode failed")
             Log.d(TAG, "handleShutter: decoded ${src.width}x${src.height} in ${System.currentTimeMillis() - tDecode}ms")
