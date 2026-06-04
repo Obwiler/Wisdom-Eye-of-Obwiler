@@ -7,7 +7,7 @@
 project:
   name: weo
   full_name: "Wisdom Eye of Obwiler (奥贝之眼)"
-  version: "0.1.0"
+  version: "0.2.0"
   description: >
     MicroLED 绿色单色屏 (480×640) 智能眼镜 AI 视觉识别应用。
     用户通过眼镜按键触发拍照 → 图像管线预处理 → 第三方 AI 视觉 API 分析 → 结果在单色屏展示。
@@ -98,10 +98,10 @@ modules:
 # 4. Version Management
 versioning:
   strategy: semver
-  current: "0.1.0"
+  current: "0.2.0"
   plan_versions:
-    - "v0.2.0: APK 修正 (输入系统/传感器/导航/相机/图像/AI重试)"
-    - "v0.3.0: PC 工具优化 (ADB加固/配置校验/UI修正)"
+    - "v0.2.0: APK 修正 (已完成) + PC 工具配置校验 (已完成)"
+    - "v0.3.0: 实机验证与性能打磨"
     - "v1.0.0: PC 工具架构重构 (NavRail/新面板/应用商店)"
 branches:
   main: "主分支 (当前)"

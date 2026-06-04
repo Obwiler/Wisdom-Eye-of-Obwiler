@@ -1,4 +1,6 @@
-﻿# WEO APK 修正计划书 v0.2.0
+﻿> **状态: ✅ 已完成 (2026-06-04)** — 全部 8 项修正已在当前 APK 代码中实现。详见 [WEO_ROADMAP_v0.2.0.md](WEO_ROADMAP_v0.2.0.md)
+
+# WEO APK 修正计划书 v0.2.0
 
 > 制定日期: 2026-06-03  
 > 目标设备: RG_glasses（乐奇AI眼镜 / Rokid Glasses）  

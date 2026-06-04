@@ -1,7 +1,7 @@
-# 奥贝之眼 (WEO) · Code Wiki
+﻿# 奥贝之眼 (WEO) · Code Wiki
 
 > **WEO** — Wisdom Eye of Obwiler  
-> 版本: v0.1.0 | 最后更新: 2026-06-03
+> 版本: v0.2.0 | 最后更新: 2026-06-04
 
 ---
 
@@ -30,6 +30,7 @@
 9. [配置体系](#9-配置体系)
 10. [构建与运行](#10-构建与运行)
 11. [签名与发布](#11-签名与发布)
+12. [路线图](#12-路线图)
 
 ---
 
@@ -847,3 +848,14 @@ keyPassword=your_key_password
 | `com.android.action.ACTION_TWO_FINGER_SWIPE_FORWARD` | Rokid 眼镜 | MainActivity | 双指前滑 |
 | `com.android.action.ACTION_TWO_FINGER_SWIPE_BACK` | Rokid 眼镜 | MainActivity | 双指后滑 |
 | `com.obwiler.weo.CONFIG_UPDATED` | PC 工具 | MainActivity | 配置已更新通知 |
+
+---
+
+## 12. 路线图
+
+详见 [WEO_ROADMAP_v0.2.0.md](docs/WEO_ROADMAP_v0.2.0.md)
+
+- **v0.2.0** (当前): APK 全部修正完成 + PC 工具配置校验
+- **v0.3.0**: 实机验证与打磨
+- **v1.0.0**: PC 工具架构重构（NavRail + 仪表盘 + 应用商店）
+- **v1.x+**: 多模型支持 / 数据分析 / 分享协作
