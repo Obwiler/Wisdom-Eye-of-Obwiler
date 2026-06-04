@@ -35,7 +35,7 @@ class MainWindow(QMainWindow):
         super().__init__(parent)
         self._app = App.instance()
 
-        self.setWindowTitle("\u5965\u8D1D\u4E4B\u773C \u00B7 WEO PC \u5DE5\u5177")
+        self.setWindowTitle(APP_NAME)
         self.setMinimumSize(1100, 620)
 
         self._setup_ui()
