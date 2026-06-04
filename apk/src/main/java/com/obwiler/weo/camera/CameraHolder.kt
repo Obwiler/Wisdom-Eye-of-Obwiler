@@ -116,6 +116,7 @@ class CameraHolder(private val context: Context) : CameraService {
                 }
 
                 val deferred = CompletableDeferred<ByteArray>()
+                Log.d(TAG, "capture: orient=${_sensorOrientation.value} size=${_captureSize.value}")
                 captureDeferred = deferred
 
                 val req = device.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE).apply {
@@ -125,7 +126,8 @@ class CameraHolder(private val context: Context) : CameraService {
                 }
 
                 try {
-                    session.capture(req.build(), captureCallback, cameraHandler)
+                    Log.d(TAG, "capture: submitting to HAL...")
+                session.capture(req.build(), captureCallback, cameraHandler)
                 } catch (e: Exception) {
                     captureDeferred = null
                     if (cont.isActive) {
@@ -261,8 +263,9 @@ class CameraHolder(private val context: Context) : CameraService {
 
     // ---- Teardown (runs on cameraHandler thread) ----
     private fun closeSession() {
-        // Fail any pending capture
-        captureDeferred?.completeExceptionally(RuntimeException("Camera session closed"))
+        // Snapshot pending capture so we don't preemptively kill it
+        // while the HAL callbacks still have a chance to fire.
+        val pendingCapture = captureDeferred
         captureDeferred = null
 
         try { captureSession?.close() } catch (_: Exception) {}
@@ -278,6 +281,19 @@ class CameraHolder(private val context: Context) : CameraService {
         imageReader = null
 
         _ready.value = false
+
+        // If the HAL didn't complete the capture through the normal callback
+        // path (session already torn down), fail it now -- safely, in case
+        // a racing callback already completed it.
+        if (pendingCapture != null && !pendingCapture.isCompleted) {
+            try {
+                pendingCapture.completeExceptionally(
+                    RuntimeException("Camera session closed")
+                )
+            } catch (_: Exception) {
+                // Already completed by a racing callback -- fine.
+            }
+        }
     }
 
     // ========================================================================

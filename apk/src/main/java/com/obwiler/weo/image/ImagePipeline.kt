@@ -23,7 +23,9 @@ object ImagePipeline {
         rollDeg: Float = 0f,
         enableCorrection: Boolean = false,
     ): ByteArray {
+        val t0 = System.currentTimeMillis()
         var current = original
+        Log.d(TAG, "process: input=${current.width}x${current.height} pitch=$pitchDeg roll=$rollDeg")
 
         val maxDim = maxOf(current.width, current.height)
         if (maxDim > 1920) {
@@ -31,18 +33,23 @@ object ImagePipeline {
             val newW = (current.width * scale).toInt()
             val newH = (current.height * scale).toInt()
             current = Bitmap.createScaledBitmap(current, newW, newH, true)
+            Log.d(TAG, "process: scaled to ${newW}x${newH} in ${System.currentTimeMillis() - t0}ms")
         }
 
-        // Always use fast tilt correction (IMU-based, ~1ms).
-        // correctDocument() (perspective warp) is ~200ms on CPU ? skip it
-        // for the glasses use case where the camera angle is fixed.
+        // Fast tilt correction (IMU-based, ~1ms).
+        val t1 = System.currentTimeMillis()
         current = tiltCorrection(current, pitchDeg, rollDeg)
+        Log.d(TAG, "process: tiltCorrection in ${System.currentTimeMillis() - t1}ms")
 
+        val t2 = System.currentTimeMillis()
         current = histogramStretch(current)
+        Log.d(TAG, "process: histogramStretch in ${System.currentTimeMillis() - t2}ms")
 
+        val t3 = System.currentTimeMillis()
         val jpeg = compressToJpeg(current)
+        Log.d(TAG, "process: compressToJpeg in ${System.currentTimeMillis() - t3}ms")
 
-        Log.d(TAG, "Processed: ${jpeg.size} bytes (correction=$enableCorrection)")
+        Log.d(TAG, "process: total=${System.currentTimeMillis() - t0}ms size=${jpeg.size}B correction=$enableCorrection")
         return jpeg
     }
 

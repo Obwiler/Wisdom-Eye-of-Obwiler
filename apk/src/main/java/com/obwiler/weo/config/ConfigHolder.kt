@@ -97,7 +97,7 @@ class ConfigHolder(private val configDir: File, private val configFileName: Stri
                 userPrompt = json.optString("userPrompt", "请分析图片内容"),
                 temperature = json.optDouble("temperature", 0.3).toFloat().coerceIn(0f, 2f),
                 maxTokens = json.optInt("maxTokens", 1500).coerceIn(1, 8000),
-                timeoutMs = json.optLong("timeoutMs", 60_000L).coerceIn(5_000L, 180_000L),
+                timeoutMs = json.optLong("timeoutMs", 60_000L).coerceIn(15_000L, 180_000L),
                 textCorrectionEnabled = json.optBoolean("textCorrectionEnabled", true),
                 maxAnswerChars = json.optInt("maxAnswerChars", 2000).coerceIn(100, 10000),
             )

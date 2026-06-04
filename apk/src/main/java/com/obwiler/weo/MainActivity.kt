@@ -1,4 +1,4 @@
-﻿package com.obwiler.weo
+package com.obwiler.weo
 
 import android.Manifest
 import android.content.BroadcastReceiver
@@ -283,8 +283,9 @@ class MainActivity : ComponentActivity() {
     }
 
     private suspend fun handleShutter() {
+        Log.d(TAG, "handleShutter: starting capture on IO dispatcher")
         val rawBytes = try {
-            withContext(Dispatchers.IO) { cameraHolder.capture() }
+            withContext(Dispatchers.IO) { cameraHolder.capture().also { Log.d(TAG, "handleShutter: captured ${it.size} bytes") } }
         } catch (e: Exception) {
             Log.e(TAG, "Capture failed", e)
             goTo(Screen.Result(answer = "拍摄失败", steps = emptyList(), photoPath = null))
@@ -293,8 +294,10 @@ class MainActivity : ComponentActivity() {
 
         val config = configHolder.load()
         val processed = withContext(Dispatchers.IO) {
+            val tDecode = System.currentTimeMillis()
             val src = BitmapFactory.decodeByteArray(rawBytes, 0, rawBytes.size)
                 ?: throw RuntimeException("Bitmap decode failed")
+            Log.d(TAG, "handleShutter: decoded ${src.width}x${src.height} in ${System.currentTimeMillis() - tDecode}ms")
             val result = ImagePipeline.process(
                 original = src,
                 pitchDeg = imuProvider.pitchDeg,

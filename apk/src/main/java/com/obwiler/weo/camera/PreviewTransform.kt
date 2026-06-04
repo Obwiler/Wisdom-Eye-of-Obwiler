@@ -2,18 +2,18 @@ package com.obwiler.weo.camera
 
 import android.graphics.Matrix
 import android.graphics.RectF
+import android.util.Log
 
 /**
  * Compute the TextureView transform matrix for a Camera2 preview.
  *
- * For rotated sensors (90?/270?), the matrix maps the buffer so that
- * the post-rotation image fills the viewport with center-crop ? exactly
- * what every native camera app does.  The logic follows Android's own
- * Camera2Basic sample, adapted for sensor orientation (glasses have a
- * fixed display, so we use sensor orientation instead of display rotation).
+ * The TextureView matrix maps view coordinates to texture coordinates.
+ * For rotated sensors (90?/270?) we apply postRotate(orientation) to
+ * upright the image, then center-crop via a uniform postScale so the
+ * rotated texture fills the viewport.
  *
- * For non-rotated sensors, a simple center-fit via [Matrix.setRectToRect]
- * is used.
+ * For 180? sensors a simple postRotate suffices; for 0? a center-fit
+ * via [Matrix.setRectToRect] is used.
  */
 object PreviewTransform {
 
@@ -32,31 +32,21 @@ object PreviewTransform {
 
         when (orientation) {
             90, 270 -> {
-                // After sensor rotation the effective image is bufH x bufW.
-                val rotW = bufH.toFloat()
-                val rotH = bufW.toFloat()
-
-                val viewRect = RectF(0f, 0f, viewW.toFloat(), viewH.toFloat())
-                val bufRect = RectF(0f, 0f, rotW, rotH)
-
-                // 1. Center the (rotated) buffer rect in the viewport.
-                bufRect.offset(
-                    cx - bufRect.centerX(),
-                    cy - bufRect.centerY()
+                // For the RG-glasses fixed landscape display, Android's
+                // natural orientation is likely portrait, so the effective
+                // display rotation in landscape is 90 deg.
+                // Standard formula: (sensorOrientation + displayRotation*90) % 360
+                //                 (270 + 90) % 360 = 0 deg -- no rotation needed.
+                //
+                // The buffer (bufW x bufH) is already landscape 4:3, matching
+                // the display, so a simple center-crop postScale suffices.
+                val scale = maxOf(
+                    viewW.toFloat() / bufW.toFloat(),
+                    viewH.toFloat() / bufH.toFloat()
                 )
+                matrix.postScale(scale, scale, cx, cy)
 
-                // 2. Base scale+translate: map viewRect to fill bufRect.
-                matrix.setRectToRect(viewRect, bufRect, Matrix.ScaleToFit.FILL)
-
-                // 3. Compensate for pre-rotation buffer aspect ratio.
-                val arScale = maxOf(
-                    viewH / bufH.toFloat(),
-                    viewW / bufW.toFloat()
-                )
-                matrix.postScale(arScale, arScale, cx, cy)
-
-                // 4. Correct sensor rotation: invert via 360-orientation for fixed display.
-                matrix.postRotate((360 - orientation).toFloat(), cx, cy)
+                android.util.Log.d("WEO/Preview", "Transform: view=${viewW}x${viewH} buf=${bufW}x${bufH} orient=$orientation scale=$scale rotation=0deg")
             }
             180 -> {
                 matrix.postRotate(180f, cx, cy)

@@ -1,4 +1,4 @@
-﻿package com.obwiler.weo.ui.screen
+package com.obwiler.weo.ui.screen
 
 import android.graphics.Bitmap
 import android.graphics.SurfaceTexture
@@ -171,18 +171,21 @@ fun CameraScreen(
             .fillMaxSize()
             .background(WeoBlack)
     ) {
-        // Full-screen TextureView preview.
+        // Full-screen TextureView — always in composition so the surface
+        // stays alive during capture (previously the Image replacement
+        // destroyed the surface, racing with cameraHolder.capture()).
+        AndroidView(
+            factory = { textureView },
+            modifier = Modifier.fillMaxSize(),
+        )
+
+        // Overlay the snapshot bitmap while capturing (purely visual).
         if (isCapturing && capturedBitmap != null) {
             Image(
                 bitmap = capturedBitmap!!,
                 contentDescription = null,
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Fit,
-            )
-        } else {
-            AndroidView(
-                factory = { textureView },
-                modifier = Modifier.fillMaxSize()
             )
         }
 

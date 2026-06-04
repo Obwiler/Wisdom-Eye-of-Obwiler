@@ -1,6 +1,8 @@
 ﻿package com.obwiler.weo.app
 
 import android.app.Application
+import android.app.NotificationChannel
+import android.app.NotificationManager
 import android.util.Log
 import com.obwiler.weo.camera.CameraHolder
 import com.obwiler.weo.config.ConfigHolder
