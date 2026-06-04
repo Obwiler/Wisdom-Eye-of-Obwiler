@@ -1,0 +1,243 @@
+﻿# ─────────────────────────────────────────────────────
+# WEO — Wisdom Eye of Obwiler · Fullstack Project Metadata
+# Generated: 2026-06-04 · Schema: fullstack-workflow v3.1
+# ─────────────────────────────────────────────────────
+
+# 1. Project Basics
+project:
+  name: weo
+  full_name: "Wisdom Eye of Obwiler (奥贝之眼)"
+  version: "0.1.0"
+  description: >
+    MicroLED 绿色单色屏 (480×640) 智能眼镜 AI 视觉识别应用。
+    用户通过眼镜按键触发拍照 → 图像管线预处理 → 第三方 AI 视觉 API 分析 → 结果在单色屏展示。
+    系统包含 Android APK (Kotlin + Jetpack Compose + Camera2) 和 PC 管理工具 (Python + PySide6 + ADB + scrcpy)。
+  repo: local-only  # GitHub 待创建
+  last_updated: 2026-06-04
+
+# 2. Tech Stack
+tech_stack:
+  frontend:
+    - name: "Jetpack Compose (Material3)"
+      lang: Kotlin
+      sdk: "compileSdk 34 / minSdk 31"
+      target: "Android 12+ (Rokid Glasses RG)"
+  backend: null  # 无独立后端；AI 调用直接从设备发起
+  ai:
+    - name: "OpenAI Chat Completions 兼容协议"
+      client: "OkHttp 4.12.0 (Android)"
+      models:
+        - "deepseek-chat (DeepSeek)"
+        - "doubao-1.5-vision-pro-32k (火山引擎)"
+        - "Pro/deepseek-ai/DeepSeek-R1 (硅基流动)"
+        - "gpt-4o-mini (OpenAI)"
+      features:
+        - "多模态视觉识别 (image_url Base64)"
+        - "可配置 System Prompt + temperature + maxTokens"
+        - "超时控制 + 错误分类 + 自动重试"
+  desktop_tool:
+    - name: "WEO PC Tool"
+      lang: Python 3.10+
+      framework: PySide6 (Qt 6)
+      integrations:
+        - "ADB (设备通信)"
+        - "scrcpy (投屏嵌入)"
+      packaging: PyInstaller (单文件 .exe)
+  database: null  # 无数据库；配置通过 JSON 文件存储
+  ci_cd: null  # 本地构建；CI/CD 待配置
+
+# 3. Multi-Stack Architecture
+modules:
+  android_apk:
+    pages:
+      - HomeScreen       # 主菜单：拍照识图、设置、退出
+      - CameraScreen     # 相机实时预览 + 快门
+      - ResultScreen     # AI 分析结果展示（成功/失败）
+      - SettingsScreen   # 只读配置展示 + 网络状态
+      - AboutScreen      # 版本信息 + 隐私提示
+    services:
+      - CameraService/CameraHolder    # Camera2 API 封装
+      - HttpAiClient                  # OpenAI 兼容 HTTP 客户端
+      - ConfigHolder                  # 文件驱动配置 (FileObserver)
+      - ImagePipeline                # 图像处理管线 (缩放→校正→增强→压缩)
+      - ImuCollector                 # IMU 传感器采集 (倾斜校正)
+      - KeepAliveService             # 前台保活服务
+      - AppEvents                    # 事件总线 (Channel)
+    state_management: "StateFlow<AppConfig> + MutableState<Screen> + Channel"
+  pc_tool:
+    panels:
+      - ScrcpyPanel       # scrcpy 投屏嵌入
+      - RingPanel         # 虚拟指环遥控器 (DPAD)
+      - ConfigPanel       # AI 服务商配置 + 推送/拉取
+      - ApkPanel          # APK 安装/卸载管理
+      - StatusPanel       # 设备状态栏
+      - LogPanel          # 运行日志
+    core_services:
+      - AdbBridge         # ADB 命令封装
+      - ConfigSync        # 配置推送/拉取
+      - ApkManager        # APK 部署编排
+      - DeviceManager     # 设备发现与信息
+      - FileManager       # 文件浏览/推送/拉取
+      - Screenshot        # 截图捕获
+      - Shell             # 交互式 Shell
+    state_management: "Qt Signals/Slots + QThread workders"
+  communication:
+    android_to_ai: "HTTPS POST (OpenAI Chat Completions 协议)"
+    pc_to_device: "ADB (USB/WiFi): push/pull/shell/broadcast"
+    config_sync: "JSON file push + CONFIG_UPDATED broadcast → FileObserver"
+  dependencies:
+    graph:
+      - "MainActivity → WEOApplication → CameraHolder, ImuCollector"
+      - "MainActivity → ConfigHolder → FileObserver"
+      - "MainActivity → HttpAiClient → OkHttp → AI Cloud"
+      - "MainActivity → ImagePipeline"
+      - "PC Tool → ADB → Android Device"
+      - "PC Tool ConfigSync → ADB push → Device Config"
+    cycles: none  # 无循环依赖
+
+# 4. Version Management
+versioning:
+  strategy: semver
+  current: "0.1.0"
+  plan_versions:
+    - "v0.2.0: APK 修正 (输入系统/传感器/导航/相机/图像/AI重试)"
+    - "v0.3.0: PC 工具优化 (ADB加固/配置校验/UI修正)"
+    - "v1.0.0: PC 工具架构重构 (NavRail/新面板/应用商店)"
+branches:
+  main: "主分支 (当前)"
+  develop: null  # 待创建
+  feature: null  # 待创建
+  hotfix: null   # 待创建
+tags:
+  format: "v{MAJOR}.{MINOR}.{PATCH}"
+commit_convention: conventional-commits  # feat:/fix:/chore:/docs:/refactor:
+
+# 5. Deployment Configuration
+deployment:
+  android_apk:
+    build: "./gradlew assembleDebug"
+    output: "apk/build/outputs/apk/debug/WEO-debug.apk"
+    install: "adb install -r <apk>"
+  pc_tool:
+    source: "python pc_tool/main.py"
+    build: "pc_tool/_build_exe.ps1"
+    output: "pc_tool/dist/WEO-PC工具.exe"
+  config_push:
+    method: "ADB push → broadcast CONFIG_UPDATED"
+    device_path: "/sdcard/Android/data/com.obwiler.weo/files/weo_config.json"
+  environments:
+    - dev: "本地 Windows + USB 连接 RG_Glasses"
+
+# 6. API & Model Specifications
+api_docs:
+  ai_client:
+    protocol: "OpenAI Chat Completions (multimodal)"
+    endpoint: "{apiBaseUrl}/chat/completions"
+    method: POST
+    auth: "Bearer {apiKey}"
+    request:
+      model: "{modelName}"
+      messages:
+        - role: system
+          content: "{systemPrompt}"
+        - role: user
+          content:
+            - type: image_url
+              image_url: { url: "data:image/jpeg;base64,{base64}" }
+      temperature: "{temperature}"
+      max_tokens: "{maxTokens}"
+    response:
+      200: { choices: [{ message: { content: "..." } }] }
+      401: AUTH_ERROR
+      429: RATE_LIMIT → 重试
+      5xx: SERVER_ERROR
+    timeout: "{timeoutMs}ms (default 30000)"
+    retry: "最多 2 次 + 指数退避 (1s, 2s)"
+  config_schema:
+    path: "data/weo_config_schema.json"
+  pc_tool_commands:
+    - "shot: 截图 → _screenshot.png"
+    - "key <name>: 发送按键"
+    - "deploy [--apk] [--push]: 安装+配置+启动"
+    - "status: 设备+应用状态"
+    - "uninstall: 卸载应用"
+    - "nav <keys...>: 导航测试 (前/后截图)"
+    - "type <text>: 输入文字"
+    - "tap <x> <y>: 点击坐标"
+
+# 7. Defense Baseline
+defense:
+  parameter_validation:
+    android: "AppConfig 字段类型校验 + API URL/Key 非空检查"
+    pc_tool: "ConfigValidator: URL 格式 http/https scheme + Key 长度下限 (待实现)"
+  idempotency:
+    config_push: "覆盖写入，幂等"
+    deploy: "force_stop → sleep 1s → install 保证幂等 (待加固)"
+  rate_limiting: null  # 单设备场景，无需限流
+  injection_prevention:
+    ai_prompt: "systemPrompt 由 PC 工具配置，设备端只读"
+    adb_commands: "shell 命令参数白名单化 (待评估)"
+  error_handling:
+    ai: "ErrorCategory: NETWORK / AUTH / TIMEOUT / SERVER / UNKNOWN"
+    adb: "returncode 检查 + stderr 捕获 (待加固)"
+
+# 8. Risk Matrix
+risks:
+  - id: R1
+    category: tech
+    description: "RG_Glasses 无 TYPE_ROTATION_VECTOR 传感器，ImuCollector 数据始终为 0"
+    probability: high
+    impact: medium  # 仅影响倾斜校正功能
+    mitigation: "改用加速度计+地磁传感器融合 (APK Fix S2)"
+    status: planned
+  - id: R2
+    category: tech
+    description: "Camera2 createCaptureSession(List<Surface>) 在 targetSdk 34 已废弃"
+    probability: high
+    impact: medium  # 功能正常但可能在未来 Android 版本被移除
+    mitigation: "迁移至 SessionConfiguration API (APK Fix S4)"
+    status: planned
+  - id: R3
+    category: security
+    description: "API Key 明文存储在设备 /sdcard 分区"
+    probability: medium
+    impact: high  # 物理接触设备可读取
+    mitigation: "当前阶段可接受 (单用户场景)；未来考虑加密存储"
+    status: accepted
+  - id: R4
+    category: tech
+    description: "BACK 键可能与 Rokid sprite.launcher 全局返回冲突"
+    probability: medium
+    impact: medium
+    mitigation: "仅 WEO 前台且非 Home 页时拦截 BACK (APK Fix S1)"
+    status: planned
+  - id: R5
+    category: tech
+    description: "PC 工具 install_only/uninstall_only 新建 WEOConfig() 丢失实际配置"
+    probability: high
+    impact: high  # install_only 功能不可用
+    mitigation: "改为接收 ApkManager 实例 (PC Optimize P3)"
+    status: planned
+  - id: R6
+    category: tech
+    description: "HTTP AI 调用无重试，网络波动直接失败"
+    probability: medium
+    impact: medium
+    mitigation: "添加 2 次重试+指数退避 (APK Fix S6)"
+    status: planned
+
+# 9. Image Recognition (via image-recognition-delegate skill)
+image_recognition:
+  delegate: "image-recognition-delegate skill"
+  primary_backend: "豆包 Desktop App (本地 OCR)"
+  fallback: "OpenAI Vision API"
+  archive_path: "D:/Screenshots/CodexUse/"
+  note: "模型不支持图片输入，所有图片识别需路由至外部后端"
+
+# 10. Git Status
+git:
+  initialized: true
+  branch: main
+  remote: null  # 待创建 GitHub 仓库
+  last_commit: "chore: initial commit — WEO v0.1.0 project baseline"
+  total_files: 100
