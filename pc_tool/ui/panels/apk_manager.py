@@ -73,6 +73,7 @@ class ApkManagerPanel(QWidget):
         self._setup_ui()
         self._refresh_all()
         self._connect_device_signals()
+        self._auto_synced = False
 
     def _setup_ui(self):
         scroll = QScrollArea()
@@ -165,6 +166,23 @@ class ApkManagerPanel(QWidget):
     def _on_device_event(self, *args):
         self._refresh_all()
 
+    def showEvent(self, event):
+        """Auto-sync deploy cache from build output when panel becomes visible."""
+        super().showEvent(event)
+        if not self._auto_synced:
+            self._auto_synced = True
+            build = self._find_build_apk()
+            if build:
+                dst = self._apk_target_path()
+                if not dst.exists() or build.stat().st_mtime > dst.stat().st_mtime + 1:
+                    try:
+                        dst.parent.mkdir(parents=True, exist_ok=True)
+                        shutil.copy2(str(build), str(dst))
+                        self.log_line.emit(f"[APK] 自动同步最新构建: {dst.name}")
+                    except OSError:
+                        pass
+            self._refresh_all()
+
     def _make_section(self, text: str) -> QLabel:
         lbl = QLabel(text)
         lbl.setObjectName("section_label")
@@ -242,32 +260,39 @@ class ApkManagerPanel(QWidget):
             return
 
         build_apk = self._find_build_apk()
-        apk_to_install = None
+        if not build_apk:
+            self._output.append("❌ 未找到构建输出 APK")
+            self._output.append("   请先运行 gradlew assembleDebug 构建项目")
+            self._refresh_apk_info()
+            return
 
-        if build_apk:
-            dst = self._apk_target_path()
-            try:
-                dst.parent.mkdir(parents=True, exist_ok=True)
-                shutil.copy2(str(build_apk), str(dst))
-                size_mb = build_apk.stat().st_size / (1024 * 1024)
-                self._output.append(f"✔ 从构建目录复制: {dst.name} ({size_mb:.1f} MB)")
-                apk_to_install = dst
-            except OSError as e:
-                self._output.append(f"❌ 复制失败: {e}")
+        # Check if cached version is already up-to-date
+        dst = self._apk_target_path()
+        if dst.exists():
+            build_time = build_apk.stat().st_mtime
+            cache_time = dst.stat().st_mtime
+            if build_time <= cache_time + 1:
+                size_mb = dst.stat().st_size / (1024 * 1024)
+                self._output.append(f"✔ APK 已是最新版本 ({size_mb:.1f} MB)")
+                self._start_task("install", dst, serial)
                 return
-        else:
-            configured = self._apk_target_path()
-            if configured.exists():
-                self._output.append(f"✔ 使用已配置 APK: {configured.name}")
-                apk_to_install = configured
+
+        # Copy fresh build to deploy cache
+        try:
+            dst.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(str(build_apk), str(dst))
+            size_mb = build_apk.stat().st_size / (1024 * 1024)
+            self._output.append(f"✔ 从构建目录同步: {dst.name} ({size_mb:.1f} MB)")
+        except OSError as e:
+            self._output.append(f"❌ 同步失败: {e}")
+            # Fallback: try to use existing cached version
+            if dst.exists():
+                self._output.append(f"⚠ 降级使用缓存版本")
             else:
-                self._output.append("❌ 未找到 APK")
-                self._output.append("   方法 1: 在 Android Studio 中构建项目后点击「一键安装」")
-                self._output.append("   方法 2: 点击「配置 APK」手动选择 APK 文件")
                 return
 
         self._refresh_apk_info()
-        self._start_task("install", apk_to_install, serial)
+        self._start_task("install", dst, serial)
     def _on_uninstall_app(self):
         serial = self._current_serial()
         if not serial:

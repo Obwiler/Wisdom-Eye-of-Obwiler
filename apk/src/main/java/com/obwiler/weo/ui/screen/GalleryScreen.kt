@@ -1,6 +1,7 @@
 ﻿package com.obwiler.weo.ui.screen
 
 import android.graphics.BitmapFactory
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -17,11 +18,16 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -88,8 +94,11 @@ fun GalleryScreen(onBack: () -> Unit) {
                 modifier = Modifier.weight(1f),
             ) {
                 items(photos) { photo ->
-                    val bmp = remember(photo.filePath) {
-                        try { BitmapFactory.decodeFile(photo.filePath)?.asImageBitmap() } catch (_: Exception) { null }
+                    var bmp by remember { mutableStateOf<ImageBitmap?>(null) }
+                    LaunchedEffect(photo.filePath) {
+                        bmp = withContext(Dispatchers.IO) {
+                            try { BitmapFactory.decodeFile(photo.filePath)?.asImageBitmap() } catch (_: Exception) { null }
+                        }
                     }
                     Column(
                         modifier = Modifier
@@ -97,9 +106,10 @@ fun GalleryScreen(onBack: () -> Unit) {
                             .background(WeoGreen66.copy(alpha = 0.15f)),
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
-                        if (bmp != null) {
+                        val bitmap = bmp
+                        if (bitmap != null) {
                             Image(
-                                bitmap = bmp,
+                                bitmap = bitmap,
                                 contentDescription = null,
                                 modifier = Modifier
                                     .fillMaxWidth()
