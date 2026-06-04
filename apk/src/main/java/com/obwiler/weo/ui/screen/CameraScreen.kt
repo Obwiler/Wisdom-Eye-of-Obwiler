@@ -30,6 +30,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.delay
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -67,6 +68,20 @@ fun CameraScreen(
 
     var isCapturing by remember { mutableStateOf(false) }
     var capturedBitmap by remember { mutableStateOf<ImageBitmap?>(null) }
+    var captureSeconds by remember { mutableStateOf(0) }
+
+    // Count-up timer while capturing
+    LaunchedEffect(isCapturing) {
+        if (isCapturing) {
+            captureSeconds = 1
+            while (isCapturing) {
+                delay(1000L)
+                captureSeconds++
+            }
+        } else {
+            captureSeconds = 0
+        }
+    }
 
     // Observe camera state directly — no LaunchedEffect+awaitReady race.
     val isReady by cameraService.ready.collectAsState()

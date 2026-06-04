@@ -13,7 +13,7 @@ import kotlin.math.sqrt
 object ImagePipeline {
 
     private const val TAG = "WEO/Image"
-    private const val JPEG_QUALITY = 92
+    private const val JPEG_QUALITY = 98
     private const val MAX_SIZE_KB = 800
     private const val MIN_QUALITY = 75
 
