@@ -4,9 +4,9 @@
 [![Android](https://img.shields.io/badge/Android-12%2B-green)]()
 [![License](https://img.shields.io/badge/license-MIT-orange)]()
 
-> 还在为看不清眼前的东西干瞪眼？还在为外文菜单掏出手机翻译社死现场？奥贝之眼了解一下——戴上眼镜按快门，AI 秒回答案，比你对象回微信还快。兼容 DeepSeek、豆包、GPT 各路 AI 大神，想用谁用谁。12MP 摄像头加 IMU 防抖校正，歪着头也能拍清楚。PC 端一键部署，配置即推即用。开源免费，MIT 协议，拿去做啥都行，反正我们就是看你用得爽。
+> 乐奇眼镜自带的慧眼得喊一声才能用，奥贝之眼不用——物理按键触发，拍完即搜。搜题、翻译、识物一把抓，后端不锁死，DeepSeek、豆包、GPT 随便接。说白了，这就是慧眼的非语言触发第三方增强版。更安静，更能打，还不收订阅费。
 
-**WEO** 是一款面向 MicroLED 单色屏智能眼镜（480×640）的 AI 视觉识别应用。按一下快门，AI 告诉你眼前是什么。
+**WEO** 是一款面向 MicroLED 单色屏智能眼镜（480×640）的 AI 视觉识别应用。按一下快门，AI 告诉你眼前是什么——搜题解题、识物翻译，都是基本功。
 
 > 基于 [Rokid RG-glasses](https://www.rokid.com) 开发（骁龙 AR1、Android 12、12MP 相机、1.8GB 内存）。
 
@@ -21,7 +21,8 @@
 
 ## 功能
 
-- **一键拍照** — 眼镜物理按键触发，无需摸手机
+- **一键拍照** — 眼镜物理按键触发，无需摸手机，更不用张嘴喊
+- **拍照搜题** — 对准题目按快门，AI 分步讲解，标注知识点，比家教有耐心
 - **换 AI 如换衣服** — 兼容任何 OpenAI Chat Completions 接口（DeepSeek、豆包、硅基流动、MIMO、GPT-4o…随你换）
 - **图像预处理** — IMU 倾斜校正，歪着头也能拍出端正的文字
 - **桌面管理工具** — Windows 端一键部署、配置同步、屏幕镜像（scrcpy）、文件管理、Shell 终端
@@ -79,15 +80,15 @@
   "apiBaseUrl": "https://api.deepseek.com/v1",
   "apiKey": "sk-你的密钥",
   "modelName": "deepseek-chat",
-  "systemPrompt": "请分析图片内容，用中文回答。",
-  "userPrompt": "这张图里有什么？",
+  "systemPrompt": "你是一个解题助手。请识别图片中的题目，给出详细的解题步骤和答案，标注考察的知识点。",
+  "userPrompt": "请分析图片内容",
   "temperature": 0.3,
   "maxTokens": 1500,
   "timeoutMs": 30000
 }
 ```
 
-内置供应商预设：DeepSeek · 豆包（火山引擎） · 硅基流动 · OpenAI · 小米 MIMO。
+内置 supplier 预设：DeepSeek · 豆包（火山引擎） · 硅基流动 · OpenAI · 小米 MIMO。
 
 ## 快速开始
 
