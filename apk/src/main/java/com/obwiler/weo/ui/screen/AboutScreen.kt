@@ -1,4 +1,4 @@
-﻿package com.obwiler.weo.ui.screen
+package com.obwiler.weo.ui.screen
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -27,6 +27,7 @@ import com.obwiler.weo.ui.theme.WeoGreenCC
 import com.obwiler.weo.ui.theme.WeoGreenFF
 import com.obwiler.weo.ui.theme.WeoGreen99
 import com.obwiler.weo.ui.theme.WeoGreen66
+import com.obwiler.weo.BuildConfig
 
 @Composable
 fun AboutScreen(
@@ -62,7 +63,7 @@ fun AboutScreen(
             )
 
             Text(
-                text = "WEO v0.2.0",
+                text = "WEO v${BuildConfig.VERSION_NAME}",
                 fontSize = 17.sp,
                 color = WeoGreenFF,
                 textAlign = TextAlign.Center,

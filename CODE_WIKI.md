@@ -1,7 +1,7 @@
 ﻿# 奥贝之眼 (WEO) · Code Wiki
 
 > **WEO** — Wisdom Eye of Obwiler  
-> 版本: v0.2.0 | 最后更新: 2026-06-04
+> 版本: v0.2.0 | 最后更新: 2026-06-04 (新增 server 模块)
 
 ---
 
@@ -10,7 +10,7 @@
 1. [项目概述](#1-项目概述)
 2. [整体架构](#2-整体架构)
 3. [目录结构](#3-目录结构)
-4. [Android APK 模块详解](#4-android-apk-模块详解)
+4. [眼镜设备端 模块详解](#4-android-apk-模块详解)
    - 4.1 应用入口层
    - 4.2 AI 模块 (`ai`)
    - 4.3 相机模块 (`camera`)
@@ -63,7 +63,7 @@
                             │ ADB (USB/WiFi)
                             ▼
 ┌─────────────────────────────────────────────────────────┐
-│              Android APK (Kotlin/Compose)                │
+│              眼镜设备端 (Kotlin/Compose)                │
 │                                                         │
 │  ┌─────────────┐  ┌──────────────┐  ┌───────────────┐  │
 │  │ MainActivity │──│ ImagePipeline│──│  HttpAiClient │  │
@@ -171,7 +171,7 @@ Wisdom Eye of Obwiler/
 
 ---
 
-## 4. Android APK 模块详解
+## 4. 眼镜设备端 模块详解
 
 ### 4.1 应用入口层
 
@@ -424,6 +424,53 @@ val WeoDark = Color(0xFF0A0A0A)        // 近黑色背景
 
 ---
 
+
+### 4.10 服务器模块 (server) — v0.2.0 新增
+
+眼镜端自建 HTTP 服务器 + WiFi 热点，实现眼镜-手机之间的零依赖数据传输。不依赖 Rokid CXR SDK（审核未通过），全部自研。
+
+| 文件 | 说明 |
+|------|------|
+| [WeoHttpServer.kt](apk/src/main/java/com/obwiler/weo/server/WeoHttpServer.kt) | 零外部依赖的轻量 HTTP 服务器（ServerSocket + 线程池） |
+| [WeoApiHandler.kt](apk/src/main/java/com/obwiler/weo/server/WeoApiHandler.kt) | REST API 路由和业务处理（status/config/capture/photos/sensors） |
+| [WifiHotspotManager.kt](apk/src/main/java/com/obwiler/weo/server/WifiHotspotManager.kt) | WiFi 热点自动管理（API 26+ LocalOnlyHotspot + 旧设备反射降级） |
+
+**生命周期**：
+- APK 启动 → WEOApplication.onCreate() → HTTP 服务器自动启动 + WiFi 热点自动开启
+- APK 完全退出 → MainActivity.finish() → 服务器关闭 + 热点关闭
+- 后台运行 → 服务器保持运行（通过 KeepAliveService 保活）
+
+**API 端点**（端口 8765）：
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | /ping | 健康检查 |
+| GET | /api/status | 设备状态（WiFi SSID、IP、端口、AI 配置摘要） |
+| GET | /api/config | 当前配置（apiKey 脱敏） |
+| POST | /api/config | 更新配置（JSON body） |
+| POST | /api/capture | 触发拍照，返回 Base64 JPEG + IMU 数据 |
+| GET | /api/photos | 照片列表（最近 50 张） |
+| GET | /api/photo/{fileName} | 单张照片 Base64 JPEG |
+| GET | /api/sensors | IMU 传感器快照（pitchDeg、rollDeg） |
+| OPTIONS | /api/* | CORS preflight |
+
+**手机端连接方式**：
+1. 眼镜启动 WEO → 自动创建本地 WiFi 热点（SSID 格式：WEO-Glasses 或系统分配）
+2. 手机连接该 WiFi
+3. 浏览器或配套 App 访问 http://<IP>:8765/
+
+**架构图**：
+`
+┌──────────────────────┐     WiFi (热点/局域网)     ┌──────────────┐
+│   WEO APK (眼镜)      │ ◄─────────────────────► │   手机/PC     │
+│                      │                           │              │
+│  WEOApplication      │   HTTP :8765              │  浏览器 /    │
+│  ├─ WeoHttpServer    │   GET /api/status         │  配套 App    │
+│  ├─ WeoApiHandler    │   POST /api/capture       │              │
+│  └─ WifiHotspotMgr   │   GET /api/photos         │              │
+└──────────────────────┘                           └──────────────┘
+`
+
 ## 5. PC 工具模块详解
 
 ### 5.1 入口与主窗口
@@ -632,7 +679,7 @@ Android 端 BroadcastReceiver 收到广播
 
 ## 8. 依赖关系
 
-### Android APK 依赖
+### 眼镜设备端 依赖
 
 | 依赖 | 版本 | 用途 |
 |------|------|------|
@@ -735,7 +782,7 @@ PC 工具的行为参数在 `core/constants.py` 的 `WEOConfig` 数据类中定�
 
 ## 10. 构建与运行
 
-### Android APK 构建
+### 眼镜设备端 构建
 
 **前置条件**：
 - JDK 17+
@@ -859,3 +906,49 @@ keyPassword=your_key_password
 - **v0.3.0**: 实机验证与打磨
 - **v1.0.0**: PC 工具架构重构（NavRail + 仪表盘 + 应用商店）
 - **v1.x+**: 多模型支持 / 数据分析 / 分享协作
+
+### 4.10 服务器模块 (`server`) — v0.2.0 新增
+
+眼镜端自建 HTTP 服务器 + WiFi 热点，实现眼镜-手机之间的零依赖数据传输。不依赖 Rokid CXR SDK（审核未通过），全部自研。
+
+| 文件 | 说明 |
+|------|------|
+| [WeoHttpServer.kt](apk/src/main/java/com/obwiler/weo/server/WeoHttpServer.kt) | 零外部依赖的轻量 HTTP 服务器（ServerSocket + 线程池） |
+| [WeoApiHandler.kt](apk/src/main/java/com/obwiler/weo/server/WeoApiHandler.kt) | REST API 路由和业务处理（status/config/capture/photos/sensors） |
+| [WifiHotspotManager.kt](apk/src/main/java/com/obwiler/weo/server/WifiHotspotManager.kt) | WiFi 热点自动管理（API 26+ LocalOnlyHotspot + 旧设备反射降级） |
+
+**生命周期**：
+- APK 启动 → `WEOApplication.onCreate()` → HTTP 服务器自动启动 + WiFi 热点自动开启
+- APK 完全退出 → `MainActivity.finish()` → 服务器关闭 + 热点关闭
+- 后台运行 → 服务器保持运行（通过 KeepAliveService 保活）
+
+**API 端点**（端口 8765）：
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | `/ping` | 健康检查 |
+| GET | `/api/status` | 设备状态（WiFi SSID、IP、端口、AI 配置摘要） |
+| GET | `/api/config` | 当前配置（apiKey 脱敏） |
+| POST | `/api/config` | 更新配置（JSON body） |
+| POST | `/api/capture` | 触发拍照，返回 Base64 JPEG + IMU 数据 |
+| GET | `/api/photos` | 照片列表（最近 50 张） |
+| GET | `/api/photo/{fileName}` | 单张照片 Base64 JPEG |
+| GET | `/api/sensors` | IMU 传感器快照（pitchDeg、rollDeg） |
+| OPTIONS | `/api/*` | CORS preflight |
+
+**手机端连接方式**：
+1. 眼镜启动 WEO → 自动创建本地 WiFi 热点（SSID 格式：`WEO-Glasses` 或系统分配）
+2. 手机连接该 WiFi
+3. 浏览器或配套 App 访问 `http://<眼镜IP>:8765/`
+
+**架构图**：
+```
+┌──────────────────────┐     WiFi (热点/局域网)     ┌──────────────┐
+│   WEO APK (眼镜)      │ ◄─────────────────────► │   手机/PC     │
+│                      │                           │              │
+│  WEOApplication      │   HTTP :8765              │  浏览器 /    │
+│  ├─ WeoHttpServer    │   GET /api/status         │  配套 App    │
+│  ├─ WeoApiHandler    │   POST /api/capture       │              │
+│  └─ WifiHotspotMgr   │   GET /api/photos         │              │
+└──────────────────────┘                           └──────────────┘
+```

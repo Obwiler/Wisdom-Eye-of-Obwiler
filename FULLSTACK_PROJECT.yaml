@@ -11,7 +11,7 @@ project:
   description: >
     MicroLED 绿色单色屏 (480×640) 智能眼镜 AI 视觉识别应用。
     用户通过眼镜按键触发拍照 → 图像管线预处理 → 第三方 AI 视觉 API 分析 → 结果在单色屏展示。
-    系统包含 Android APK (Kotlin + Jetpack Compose + Camera2) 和 PC 管理工具 (Python + PySide6 + ADB + scrcpy)。
+    系统包含 眼镜设备端 (Kotlin + Jetpack Compose + Camera2) 和 PC 管理工具 (Python + PySide6 + ADB + scrcpy)。
   repo: local-only  # GitHub 待创建
   last_updated: 2026-06-04
 
@@ -48,7 +48,7 @@ tech_stack:
 
 # 3. Multi-Stack Architecture
 modules:
-  android_apk:
+  glasses_device:
     pages:
       - HomeScreen       # 主菜单：拍照识图、设置、退出
       - CameraScreen     # 相机实时预览 + 快门
@@ -114,7 +114,7 @@ commit_convention: conventional-commits  # feat:/fix:/chore:/docs:/refactor:
 
 # 5. Deployment Configuration
 deployment:
-  android_apk:
+  glasses_device:
     build: "./gradlew assembleDebug"
     output: "apk/build/outputs/apk/debug/WEO-debug.apk"
     install: "adb install -r <apk>"
@@ -169,17 +169,17 @@ api_docs:
 defense:
   parameter_validation:
     android: "AppConfig 字段类型校验 + API URL/Key 非空检查"
-    pc_tool: "ConfigValidator: URL 格式 http/https scheme + Key 长度下限 (待实现)"
+    pc_tool: "ConfigValidator: URL 格式 http/https scheme + Key 长度下限 (已完成)"
   idempotency:
     config_push: "覆盖写入，幂等"
-    deploy: "force_stop → sleep 1s → install 保证幂等 (待加固)"
+    deploy: "force_stop → sleep 1s → install 保证幂等 (已完成)"
   rate_limiting: null  # 单设备场景，无需限流
   injection_prevention:
     ai_prompt: "systemPrompt 由 PC 工具配置，设备端只读"
-    adb_commands: "shell 命令参数白名单化 (待评估)"
+    adb_commands: "shell 命令参数白名单化 (已评估 — 低优先级)"
   error_handling:
     ai: "ErrorCategory: NETWORK / AUTH / TIMEOUT / SERVER / UNKNOWN"
-    adb: "returncode 检查 + stderr 捕获 (待加固)"
+    adb: "returncode 检查 + stderr 捕获 (已完成)"
 
 # 8. Risk Matrix
 risks:
@@ -239,5 +239,5 @@ git:
   initialized: true
   branch: main
   remote: null  # 待创建 GitHub 仓库
-  last_commit: "chore: initial commit — WEO v0.1.0 project baseline"
+  last_commit: 'fix: main_window setWindowTitle now uses APP_NAME'
   total_files: 100

@@ -90,6 +90,15 @@ def install_only(adb: AdbClient, apk_path: str, serial: str | None = None) -> tu
 
 
 def uninstall_only(adb: AdbClient, pkg: str, serial: str | None = None) -> tuple[bool, str]:
-    if adb.uninstall(pkg, serial=serial):
+    """Uninstall the app. Returns (ok, message) with ADB output on failure."""
+    r = adb._run_for_serial(serial, "uninstall", pkg, timeout=30)
+    if r.ok and "Success" in r.stdout:
         return True, "卸载成功"
-    return False, "卸载失败"
+    # Gather details
+    err = r.stderr.strip() or r.stdout.strip() or "未知错误"
+    # Check common cases
+    if "DELETE_FAILED_INTERNAL_ERROR" in err:
+        return False, f"卸载失败: 应用可能未安装\n  ADB: {err}"
+    if "not installed" in err.lower() or "Unknown package" in err:
+        return False, "卸载失败: 应用未安装（眼镜上不存在 WEO）"
+    return False, f"卸载失败\n  ADB: {err}"

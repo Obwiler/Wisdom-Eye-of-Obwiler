@@ -30,16 +30,3 @@ def load_config(config_path: str | None = None) -> WEOConfig:
                     setattr(cfg, k, v)
     return cfg
 
-
-THEME = {
-    "green": "#00FF00",
-    "green_alpha": "#6600FF00",
-    "dark_bg": "#0A0A0A",
-    "panel_bg": "#111111",
-    "text_secondary": "#888888",
-    "font_main": "Segoe UI",
-    "font_size_title": 14,
-    "font_size_normal": 12,
-    "font_size_small": 10,
-    "border_radius": 6,
-}

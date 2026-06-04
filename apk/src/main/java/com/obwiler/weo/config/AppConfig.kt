@@ -8,7 +8,7 @@ data class AppConfig(
     val userPrompt: String = "请分析图片内容",
     val temperature: Float = 0.3f,
     val maxTokens: Int = 1500,
-    val timeoutMs: Long = 30_000L,
-    val textCorrectionEnabled: Boolean = true,
+    val timeoutMs: Long = 60_000L,
+    val textCorrectionEnabled: Boolean = false,
     val maxAnswerChars: Int = 2000,
 )

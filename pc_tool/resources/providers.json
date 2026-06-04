@@ -1,16 +1,47 @@
-{
-    "version": 1,
-    "providers": [
-        {"id": "deepseek",    "name": "DeepSeek",          "base_url": "https://api.deepseek.com/v1",                                "default_model": "deepseek-chat"},
-        {"id": "doubao",      "name": "豆包（火山引擎）",   "base_url": "https://ark.cn-beijing.volces.com/api/v3",                   "default_model": "doubao-1.5-vision-pro-32k"},
-        {"id": "siliconflow", "name": "硅基流动",           "base_url": "https://api.siliconflow.cn/v1",                              "default_model": "Pro/deepseek-ai/DeepSeek-R1"},
-        {"id": "openai",      "name": "OpenAI",            "base_url": "https://api.openai.com/v1",                                  "default_model": "gpt-4o-mini"},
-        {"id": "custom",      "name": "自定义",             "base_url": "",                                                            "default_model": ""}
-    ],
-    "presets": {
-        "通用": "请分析图片内容，用中文回答。",
-        "搜题": "你是一个解题助手。请识别图片中的题目，给出详细的解题步骤和答案。",
-        "翻译": "请识别图片中的文字，将其翻译成中文。",
-        "OCR": "请提取图片中的所有文字，不做额外分析。"
-    }
+﻿{
+    "version":  1,
+    "providers":  [
+                      {
+                          "id":  "deepseek",
+                          "name":  "DeepSeek",
+                          "base_url":  "https://api.deepseek.com/v1",
+                          "default_model":  "deepseek-chat"
+                      },
+                      {
+                          "id":  "doubao",
+                          "name":  "豆包（火山引擎）",
+                          "base_url":  "https://ark.cn-beijing.volces.com/api/v3",
+                          "default_model":  "doubao-1.5-vision-pro-32k"
+                      },
+                      {
+                          "id":  "siliconflow",
+                          "name":  "硅基流动",
+                          "base_url":  "https://api.siliconflow.cn/v1",
+                          "default_model":  "Pro/deepseek-ai/DeepSeek-R1"
+                      },
+                      {
+                          "id":  "openai",
+                          "name":  "OpenAI",
+                          "base_url":  "https://api.openai.com/v1",
+                          "default_model":  "gpt-4o-mini"
+                      },
+                      {
+                          "id":  "custom",
+                          "name":  "自定义",
+                          "base_url":  "",
+                          "default_model":  ""
+                      },
+                      {
+                          "id":  "mimo",
+                          "name":  "小米MIMO",
+                          "base_url":  "https://api.xiaomimimo.com/v1",
+                          "default_model":  "mimo-v2.5"
+                      }
+                  ],
+    "presets":  {
+                    "通用":  "请分析图片内容，用中文回答。",
+                    "搜题":  "你是一个解题助手。请识别图片中的题目，给出详细的解题步骤和答案。",
+                    "翻译":  "请识别图片中的文字，将其翻译成中文。",
+                    "OCR":  "请提取图片中的所有文字，不做额外分析。"
+                }
 }

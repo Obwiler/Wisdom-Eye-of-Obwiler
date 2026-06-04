@@ -1,4 +1,4 @@
-package com.obwiler.weo.image
+﻿package com.obwiler.weo.image
 
 import android.graphics.Bitmap
 import android.graphics.Canvas
@@ -13,9 +13,9 @@ import kotlin.math.sqrt
 object ImagePipeline {
 
     private const val TAG = "WEO/Image"
-    private const val JPEG_QUALITY = 60
-    private const val MAX_SIZE_KB = 150
-    private const val MIN_QUALITY = 40
+    private const val JPEG_QUALITY = 92
+    private const val MAX_SIZE_KB = 800
+    private const val MIN_QUALITY = 75
 
     fun process(
         original: Bitmap,
@@ -26,18 +26,17 @@ object ImagePipeline {
         var current = original
 
         val maxDim = maxOf(current.width, current.height)
-        if (maxDim > 1280) {
-            val scale = 1280f / maxDim
+        if (maxDim > 1920) {
+            val scale = 1920f / maxDim
             val newW = (current.width * scale).toInt()
             val newH = (current.height * scale).toInt()
             current = Bitmap.createScaledBitmap(current, newW, newH, true)
         }
 
-        current = if (enableCorrection) {
-            correctDocument(current)
-        } else {
-            tiltCorrection(current, pitchDeg, rollDeg)
-        }
+        // Always use fast tilt correction (IMU-based, ~1ms).
+        // correctDocument() (perspective warp) is ~200ms on CPU ? skip it
+        // for the glasses use case where the camera angle is fixed.
+        current = tiltCorrection(current, pitchDeg, rollDeg)
 
         current = histogramStretch(current)
 

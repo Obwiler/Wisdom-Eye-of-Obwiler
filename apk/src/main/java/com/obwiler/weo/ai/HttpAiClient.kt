@@ -1,4 +1,4 @@
-package com.obwiler.weo.ai
+﻿package com.obwiler.weo.ai
 
 import android.util.Base64
 import android.util.Log
@@ -20,7 +20,7 @@ import java.util.concurrent.TimeUnit
 class HttpAiClient : AiClient {
 
     companion object {
-        private const val MAX_RETRIES = 3  // 1 initial + 2 retries
+        private const val MAX_RETRIES = 2  // 1 initial + 1 retry
     }
 
     private val client = OkHttpClient.Builder()

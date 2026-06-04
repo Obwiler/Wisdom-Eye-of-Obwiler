@@ -1,4 +1,4 @@
-package com.obwiler.weo.config
+﻿package com.obwiler.weo.config
 
 import android.os.FileObserver
 import android.util.Log
@@ -28,10 +28,6 @@ class ConfigHolder(private val configDir: File, private val configFileName: Stri
 
     override fun load(): AppConfig = _config.value
 
-    override fun observe(onChange: (AppConfig) -> Unit) {
-        TODO("Use config StateFlow instead")
-    }
-
     override fun invalidate() {
         val updated = loadFromFile()
         _config.value = updated
@@ -55,6 +51,29 @@ class ConfigHolder(private val configDir: File, private val configFileName: Stri
         observer = null
     }
 
+
+    /** 保存配置到文件并通知 FileObserver */
+    fun save(config: AppConfig) {
+        try {
+            val json = JSONObject().apply {
+                put("apiBaseUrl", config.apiBaseUrl)
+                put("apiKey", config.apiKey)
+                put("modelName", config.modelName)
+                put("systemPrompt", config.systemPrompt)
+                put("userPrompt", config.userPrompt)
+                put("temperature", config.temperature.toDouble())
+                put("maxTokens", config.maxTokens)
+                put("timeoutMs", config.timeoutMs)
+                put("textCorrectionEnabled", config.textCorrectionEnabled)
+                put("maxAnswerChars", config.maxAnswerChars)
+            }
+            configFile.writeText(json.toString(2))
+            Log.d(TAG, "Config saved: key=${config.apiKey.take(4)}... url=${config.apiBaseUrl}")
+        } catch (e: Exception) {
+            Log.e(TAG, "Config save failed", e)
+            throw e
+        }
+    }
     private fun loadFromFile(): AppConfig {
         if (!configFile.exists()) {
             Log.d(TAG, "Config file not found, using defaults")
@@ -78,7 +97,7 @@ class ConfigHolder(private val configDir: File, private val configFileName: Stri
                 userPrompt = json.optString("userPrompt", "请分析图片内容"),
                 temperature = json.optDouble("temperature", 0.3).toFloat().coerceIn(0f, 2f),
                 maxTokens = json.optInt("maxTokens", 1500).coerceIn(1, 8000),
-                timeoutMs = json.optLong("timeoutMs", 30_000L).coerceIn(5_000L, 120_000L),
+                timeoutMs = json.optLong("timeoutMs", 60_000L).coerceIn(5_000L, 180_000L),
                 textCorrectionEnabled = json.optBoolean("textCorrectionEnabled", true),
                 maxAnswerChars = json.optInt("maxAnswerChars", 2000).coerceIn(100, 10000),
             )

@@ -1,4 +1,4 @@
-﻿# ── Python ──────────────────────────────────────
+# ── Python ──────────────────────────────────────
 __pycache__/
 *.py[cod]
 *.pyc
@@ -42,6 +42,7 @@ Desktop.ini
 $RECYCLE.BIN/
 
 # ── Project Specific ────────────────────────────
+REVISION
 _screenshot.png
 *.log
 apk_err.txt

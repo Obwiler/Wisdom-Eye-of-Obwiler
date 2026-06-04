@@ -70,7 +70,15 @@ class App(QObject):
     def adb_client(self):
         if self._adb_client is None:
             from core.adb_client import AdbClient
-            adb_path = str(self._base_dir / self.config.adb_exe_relative)
+            import sys as _sys
+            # Prefer external path (next to exe) for frozen builds
+            # because _MEIPASS temp dir can have permission issues
+            if getattr(_sys, "frozen", False):
+                adb_path = str(self.external_path(self.config.adb_exe_relative))
+                if not Path(adb_path).exists():
+                    adb_path = str(self._base_dir / self.config.adb_exe_relative)
+            else:
+                adb_path = str(self._base_dir / self.config.adb_exe_relative)
             self._adb_client = AdbClient(adb_path)
         return self._adb_client
 

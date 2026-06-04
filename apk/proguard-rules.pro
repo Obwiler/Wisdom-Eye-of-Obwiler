@@ -1,4 +1,4 @@
-# Keep annotations, generics signatures, and inner classes for runtime reflection
+﻿# Keep annotations, generics signatures, and inner classes for runtime reflection
 -keepattributes *Annotation*, Signature, InnerClasses
 
 # ---- WEO entry points (declared in AndroidManifest.xml) ----
@@ -23,3 +23,16 @@
 -dontwarn okio.**
 -keep class kotlinx.coroutines.** { *; }
 -dontwarn com.rokid.**
+
+# ── WEO server module (v0.2.0) ──
+-keep class org.json.** { *; }
+-keepclassmembers class com.obwiler.weo.server.** { *; }
+-keepclassmembers class com.obwiler.weo.ui.component.** { *; }
+
+# ── WiFi reflection ──
+-keepclassmembers class android.net.wifi.WifiManager {
+    *** setWifiApEnabled(...);
+}
+# -- WEO network + photo modules (v0.2.0) --
+-keepclassmembers class com.obwiler.weo.network.** { *; }
+-keepclassmembers class com.obwiler.weo.photo.** { *; }

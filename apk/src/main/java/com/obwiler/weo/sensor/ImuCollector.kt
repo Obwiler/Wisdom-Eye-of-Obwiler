@@ -1,4 +1,4 @@
-package com.obwiler.weo.sensor
+﻿package com.obwiler.weo.sensor
 
 import android.content.Context
 import android.hardware.Sensor
@@ -23,10 +23,14 @@ class ImuCollector(context: Context) : ImuProvider, SensorEventListener {
     private val sensorManager =
         context.getSystemService(Context.SENSOR_SERVICE) as SensorManager
 
+    // RG_Glasses has Game Rotation Vector (QTI hardware) but NO magnetometer
+    // and NO TYPE_ROTATION_VECTOR. Use Game Rotation Vector as primary source.
+    private val rotationSensor: Sensor? =
+        sensorManager.getDefaultSensor(Sensor.TYPE_GAME_ROTATION_VECTOR)
+
+    // Fallback: accelerometer-only tilt estimation (less accurate but always works)
     private val accelerometer: Sensor? =
         sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
-    private val magnetometer: Sensor? =
-        sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD)
 
     @Volatile
     override var pitchDeg: Float = 0f
@@ -39,26 +43,34 @@ class ImuCollector(context: Context) : ImuProvider, SensorEventListener {
     @Volatile
     private var active = false
 
+    private val rotationMatrix = FloatArray(9)
+    private val orientation = FloatArray(3)
+
+    // ---- fallback: accelerometer-only ----
     private val accelData = FloatArray(3)
-    private val magnetData = FloatArray(3)
     @Volatile private var hasAccel = false
-    @Volatile private var hasMagnet = false
+
+    private val usingRotationSensor: Boolean get() = rotationSensor != null
 
     override fun start() {
-        if (accelerometer == null || magnetometer == null) {
-            Log.e(TAG, "Accelerometer or magnetometer not available")
-            return
+        if (rotationSensor != null) {
+            // Primary: Game Rotation Vector (accurate, no magnetometer needed)
+            active = true
+            sensorManager.registerListener(
+                this, rotationSensor, SensorManager.SENSOR_DELAY_UI
+            )
+            Log.d(TAG, "IMU started (Game Rotation Vector)")
+        } else if (accelerometer != null) {
+            // Fallback: accelerometer-only tilt (less accurate, no heading)
+            active = true
+            hasAccel = false
+            sensorManager.registerListener(
+                this, accelerometer, SensorManager.SENSOR_DELAY_UI
+            )
+            Log.w(TAG, "IMU started (accelerometer-only fallback — no rotation sensor)")
+        } else {
+            Log.e(TAG, "No rotation sensor or accelerometer available — IMU disabled")
         }
-        active = true
-        hasAccel = false
-        hasMagnet = false
-        sensorManager.registerListener(
-            this, accelerometer, SensorManager.SENSOR_DELAY_UI
-        )
-        sensorManager.registerListener(
-            this, magnetometer, SensorManager.SENSOR_DELAY_UI
-        )
-        Log.d(TAG, "IMU started (accelerometer + magnetometer)")
     }
 
     override fun stop() {
@@ -71,24 +83,25 @@ class ImuCollector(context: Context) : ImuProvider, SensorEventListener {
         if (event == null || !active) return
 
         when (event.sensor.type) {
-            Sensor.TYPE_ACCELEROMETER -> {
-                System.arraycopy(event.values, 0, accelData, 0, 3)
-                hasAccel = true
-            }
-            Sensor.TYPE_MAGNETIC_FIELD -> {
-                System.arraycopy(event.values, 0, magnetData, 0, 3)
-                hasMagnet = true
-            }
-        }
-
-        if (hasAccel && hasMagnet) {
-            val rotationMatrix = FloatArray(9)
-            val inclinationMatrix = FloatArray(9)
-            if (SensorManager.getRotationMatrix(rotationMatrix, inclinationMatrix, accelData, magnetData)) {
-                val orientation = FloatArray(3)
+            Sensor.TYPE_GAME_ROTATION_VECTOR -> {
+                // Convert rotation vector to matrix, then extract pitch/roll
+                SensorManager.getRotationMatrixFromVector(rotationMatrix, event.values)
                 SensorManager.getOrientation(rotationMatrix, orientation)
+                // orientation[1] = pitch (radians), orientation[2] = roll (radians)
                 pitchDeg = Math.toDegrees(orientation[1].toDouble()).toFloat()
                 rollDeg = Math.toDegrees(orientation[2].toDouble()).toFloat()
+            }
+            Sensor.TYPE_ACCELEROMETER -> {
+                if (usingRotationSensor) return  // don't use fallback
+                System.arraycopy(event.values, 0, accelData, 0, 3)
+                hasAccel = true
+                // Simple tilt from gravity vector
+                val gx = accelData[0]
+                val gy = accelData[1]
+                val gz = accelData[2]
+                pitchDeg = Math.toDegrees(Math.atan2(gy.toDouble(), gz.toDouble())).toFloat()
+                rollDeg = Math.toDegrees(Math.atan2((-gx).toDouble(),
+                    Math.sqrt((gy * gy + gz * gz).toDouble()))).toFloat()
             }
         }
     }

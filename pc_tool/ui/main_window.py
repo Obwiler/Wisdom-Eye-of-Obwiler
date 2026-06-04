@@ -1,9 +1,9 @@
-﻿"""Main application window — iPod-style left mirror + right tools."""
+﻿"""Main application window --- iPod-style left mirror + right tools with sidebar."""
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QSize
 from PySide6.QtWidgets import (
     QMainWindow, QWidget, QHBoxLayout, QVBoxLayout, QStackedWidget,
-    QSplitter, QPushButton, QSizePolicy,
+    QSplitter, QPushButton, QSizePolicy, QLabel,
 )
 
 from app.application import App, APP_NAME
@@ -14,6 +14,7 @@ from ui.widgets.status_bar import StatusBar
 from ui.widgets.dpad import DPad
 from ui.panels.scrcpy import ScrcpyPanel
 from ui.panels.weo_manager import WeoManagerPanel
+from ui.panels.apk_manager import ApkManagerPanel
 from ui.panels.files import FilesPanel
 from ui.panels.screenshot_view import ScreenshotPanel
 from ui.panels.shell_term import ShellTermPanel
@@ -21,12 +22,34 @@ from ui.panels.settings_panel import SettingsPanel
 
 
 TAB_WEO = 0
-TAB_FILES = 1
-TAB_SHELL = 2
-TAB_SCREENSHOT = 3
-TAB_SETTINGS = 4
+TAB_APK = 1
+TAB_FILES = 2
+TAB_SHELL = 3
+TAB_SCREENSHOT = 4
+TAB_SETTINGS = 5
 
-TAB_NAMES = ["WEO", "\u6587\u4EF6\u7BA1\u7406", "Shell", "\u622A\u56FE", "\u8BBE\u7F6E"]
+SIDEBAR_ITEMS = [
+    ("\U0001F9E0", "WEO"),
+    ("\U0001F4E6", "\u5E94\u7528\u7BA1\u7406"),
+    ("\U0001F4C1", "\u6587\u4EF6"),
+    ("\u2328", "Shell"),
+    ("\U0001F5BC", "\u622A\u56FE"),
+    ("\u2699", "\u8BBE\u7F6E"),
+]
+
+SIDEBAR_WIDTH = 110
+
+
+class _SidebarButton(QPushButton):
+    """A sidebar navigation button with icon + label."""
+
+    def __init__(self, icon: str, label: str, parent=None):
+        super().__init__(parent)
+        self.setText(f" {icon}  {label}")
+        self.setCheckable(True)
+        self.setFixedHeight(40)
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.setObjectName("sidebar_btn")
 
 
 class MainWindow(QMainWindow):
@@ -54,7 +77,7 @@ class MainWindow(QMainWindow):
         self._device_bar = DeviceBar()
         root.addWidget(self._device_bar)
 
-        # ---- body: left (mirror+dpad) | right (tabs+stack) ----
+        # ---- body: left (mirror+dpad) | sidebar | right (stack) ----
         self._splitter = QSplitter(Qt.Orientation.Horizontal)
         self._splitter.setHandleWidth(2)
 
@@ -75,36 +98,30 @@ class MainWindow(QMainWindow):
 
         self._splitter.addWidget(left)
 
-        # Right panel
-        right = QWidget()
-        right.setObjectName("right_panel")
-        right_layout = QVBoxLayout(right)
-        right_layout.setContentsMargins(0, 0, 0, 0)
-        right_layout.setSpacing(0)
+        # ---- sidebar ----
+        sidebar = QWidget()
+        sidebar.setObjectName("sidebar")
+        sidebar.setFixedWidth(SIDEBAR_WIDTH)
+        sidebar_layout = QVBoxLayout(sidebar)
+        sidebar_layout.setContentsMargins(0, 2, 0, 2)
+        sidebar_layout.setSpacing(0)
 
-        # Tab bar
-        tab_layout = QHBoxLayout()
-        tab_layout.setContentsMargins(4, 4, 4, 4)
-        tab_layout.setSpacing(2)
-        self._tab_btns = []
-        for i, name in enumerate(TAB_NAMES):
-            btn = QPushButton(name)
-            btn.setCheckable(True)
-            btn.setFixedHeight(32)
+        self._tab_btns: list[_SidebarButton] = []
+        for i, (icon, label) in enumerate(SIDEBAR_ITEMS):
+            btn = _SidebarButton(icon, label)
             btn.clicked.connect(lambda checked, idx=i: self._on_tab(idx))
-            tab_layout.addWidget(btn)
+            sidebar_layout.addWidget(btn)
             self._tab_btns.append(btn)
-        tab_layout.addStretch()
-        right_layout.addLayout(tab_layout)
+        sidebar_layout.addStretch()
 
-        # Stack
+        self._splitter.addWidget(sidebar)
+
+        # ---- content stack ----
         self._stack = QStackedWidget()
-        right_layout.addWidget(self._stack, 1)
+        self._splitter.addWidget(self._stack)
 
-        self._splitter.addWidget(right)
-
-        # Default split: 440px left
-        self._splitter.setSizes([440, 660])
+        # Default split: 440 left, 110 sidebar, ~550 content
+        self._splitter.setSizes([440, SIDEBAR_WIDTH, 550])
         root.addWidget(self._splitter, 1)
 
         # ---- log panel (collapsible) ----
@@ -128,6 +145,9 @@ class MainWindow(QMainWindow):
         self._weo_manager = WeoManagerPanel()
         self._stack.addWidget(self._weo_manager)
 
+        self._apk_manager = ApkManagerPanel()
+        self._stack.addWidget(self._apk_manager)
+
         self._files = FilesPanel()
         self._stack.addWidget(self._files)
 
@@ -141,9 +161,8 @@ class MainWindow(QMainWindow):
         self._stack.addWidget(self._settings)
 
         # Wire log signals
-        for panel in [self._scrcpy, self._dpad, self._weo_manager,
-                      self._files, self._shell_term, self._screenshot,
-                      self._settings]:
+        for panel in [self._scrcpy, self._dpad, self._weo_manager, self._apk_manager,
+                      self._files, self._shell_term, self._screenshot, self._settings]:
             panel.log_line.connect(self._log_panel.append)
 
         # Select first tab
@@ -214,7 +233,6 @@ class MainWindow(QMainWindow):
     def log(self, text: str):
         self._log_panel.append(text)
 
-    # ---- settings ----
     def contextMenuEvent(self, event):
         from PySide6.QtWidgets import QMenu
 

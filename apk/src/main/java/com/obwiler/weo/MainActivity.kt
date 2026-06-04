@@ -26,12 +26,16 @@ import com.obwiler.weo.ai.AiClient
 import com.obwiler.weo.ai.AiResult
 import com.obwiler.weo.ai.ErrorCategory
 import com.obwiler.weo.ai.HttpAiClient
+import com.obwiler.weo.app.WEOApplication
 import com.obwiler.weo.camera.CameraHolder
 import com.obwiler.weo.config.AppConfig
 import com.obwiler.weo.config.ConfigHolder
 import com.obwiler.weo.event.AppEvents
 import com.obwiler.weo.image.ImagePipeline
+import com.obwiler.weo.photo.PhotoRepository
+import com.obwiler.weo.photo.PhotoRename
 import com.obwiler.weo.sensor.ImuProvider
+import com.obwiler.weo.server.WifiHotspotManager
 import com.obwiler.weo.service.KeepAliveService
 import com.obwiler.weo.ui.Screen
 import com.obwiler.weo.ui.screen.CameraScreen
@@ -39,6 +43,8 @@ import com.obwiler.weo.ui.screen.HomeScreen
 import com.obwiler.weo.ui.screen.ResultScreen
 import com.obwiler.weo.ui.screen.SettingsScreen
 import com.obwiler.weo.ui.screen.AboutScreen
+import com.obwiler.weo.ui.screen.GalleryScreen
+import com.obwiler.weo.ui.screen.WifiScreen
 import com.obwiler.weo.ui.theme.WeoTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.receiveAsFlow
@@ -60,6 +66,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var configHolder: ConfigHolder
     private var aiClient: AiClient? = null
     private var serviceStarted = false
+    private var backgroundMode = false
 
     private val navStack = ArrayDeque<Screen>().apply { addLast(Screen.Home) }
     private val currentScreenState = mutableStateOf<Screen>(Screen.Home)
@@ -97,6 +104,9 @@ class MainActivity : ComponentActivity() {
             val cameraOk = granted[Manifest.permission.CAMERA] == true
             val storageOk = granted[Manifest.permission.READ_EXTERNAL_STORAGE] == true
             Log.d(TAG, "Permissions: CAMERA=$cameraOk, STORAGE=$storageOk")
+            if (cameraOk) {
+                AppEvents.cameraPermissionGranted.trySend(Unit)
+            }
         }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -107,16 +117,16 @@ class MainActivity : ComponentActivity() {
             Manifest.permission.READ_EXTERNAL_STORAGE,
         ))
 
-        val app = application as com.obwiler.weo.app.WEOApplication
+        val app = application as WEOApplication
         cameraHolder = app.cameraHolder
         imuProvider = app.imuCollector
-        configHolder = ConfigHolder(getExternalFilesDir(null)!!, "weo_config.json")
-        configHolder.startWatching()
+        configHolder = app.configHolder
         aiClient = HttpAiClient()
 
         setContent {
             WeoTheme {
                 var currentScreen by remember { currentScreenState }
+                var showExitDialog by remember { mutableStateOf(false) }
 
                 val scope = rememberCoroutineScope()
 
@@ -128,9 +138,14 @@ class MainActivity : ComponentActivity() {
 
                 when (currentScreen) {
                     is Screen.Home -> {
+                        val hotspot = (application as WEOApplication).hotspotManager.hotspotInfo
+                        val serverAddr = if (hotspot.active && hotspot.ipAddress != null) {
+                            "${hotspot.ipAddress}:${hotspot.port}"
+                        } else null
                         HomeScreen(
                             onNavigate = { goTo(it) },
-                            onExit = { finish() },
+                            onExit = { showExitDialog = true },
+                            serverInfo = serverAddr,
                         )
                     }
                     is Screen.Camera -> {
@@ -144,12 +159,13 @@ class MainActivity : ComponentActivity() {
                     is Screen.Result -> {
                         val r = currentScreen as Screen.Result
                         ResultScreen(
-                            result = AiResult(
-                                answer = r.answer,
-                                steps = r.steps,
-                            ),
+                            result = AiResult(answer = r.answer, steps = r.steps),
                             photoPath = r.photoPath,
                             onBack = { goBack() },
+                            onRetake = {
+                                if (navStack.lastOrNull() is Screen.Result) navStack.removeLast()
+                                goTo(Screen.Camera)
+                            },
                         )
                     }
                     is Screen.Settings -> {
@@ -161,16 +177,44 @@ class MainActivity : ComponentActivity() {
                         )
                     }
                     is Screen.About -> {
-                        AboutScreen(
-                            onBack = { goBack() },
-                        )
+                        AboutScreen(onBack = { goBack() })
                     }
+                    is Screen.Gallery -> {
+                        GalleryScreen(onBack = { goBack() })
+                    }
+                    is Screen.Wifi -> {
+                        WifiScreen(onBack = { goBack() })
+                    }
+                }
+
+                // ---- Exit Dialog ----
+                if (showExitDialog) {
+                    androidx.compose.material3.AlertDialog(
+                        onDismissRequest = { showExitDialog = false },
+                        title = { androidx.compose.material3.Text("退出应用") },
+                        text = { androidx.compose.material3.Text("请选择退出方式") },
+                        confirmButton = {
+                            androidx.compose.material3.TextButton(onClick = {
+                                showExitDialog = false
+                                // 完全退出：关闭 HTTP 服务器和所有服务
+                                shutdownServer()
+                                finish()
+                            }) { androidx.compose.material3.Text("完全退出") }
+                        },
+                        dismissButton = {
+                            androidx.compose.material3.TextButton(onClick = {
+                                showExitDialog = false
+                                backgroundMode = true
+                                moveTaskToBack(true)
+                            }) { androidx.compose.material3.Text("后台运行") }
+                        },
+                    )
                 }
             }
         }
     }
 
-    // ---- key dispatch: only BACK for navigation; all DPAD keys pass to Compose ----
+    // ---- key dispatch ----
 
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
         if (event.action == KeyEvent.ACTION_DOWN) {
@@ -180,7 +224,7 @@ class MainActivity : ComponentActivity() {
                         goBack()
                         return true
                     }
-                    // Home screen: let system handle BACK
+                    // 根页面按返回不拦截，让系统处理（退出或后台）
                     return false
                 }
             }
@@ -200,14 +244,13 @@ class MainActivity : ComponentActivity() {
                 }
                 serviceStarted = true
             } catch (e: Exception) {
-                Log.w(TAG, "KeepAliveService start failed (background restricted)", e)
+                Log.w(TAG, "KeepAliveService start failed", e)
             }
         }
 
         val filter = IntentFilter().apply {
             addAction("com.obwiler.weo.CONFIG_UPDATED")
         }
-
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             registerReceiver(keyReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
         } else {
@@ -217,21 +260,26 @@ class MainActivity : ComponentActivity() {
 
     override fun onPause() {
         super.onPause()
-        try {
-            unregisterReceiver(keyReceiver)
-        } catch (_: Exception) {
-        }
+        try { unregisterReceiver(keyReceiver) } catch (_: Exception) {}
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        try {
-            unregisterReceiver(keyReceiver)
-        } catch (_: Exception) {
+        try { unregisterReceiver(keyReceiver) } catch (_: Exception) {}
+        // 确保资源释放（Android 不保证 onTerminate 被调用）
+        if (!backgroundMode) {
+            shutdownServer()
         }
         stopService(Intent(this, KeepAliveService::class.java))
         configHolder.stopWatching()
         cameraHolder.release()
+    }
+
+    private fun shutdownServer() {
+        val app = application as? WEOApplication ?: return
+        app.hotspotManager.stopHotspot()
+        app.httpServer?.stop()
+        Log.i(TAG, "HTTP server and hotspot shut down")
     }
 
     private suspend fun handleShutter() {
@@ -239,7 +287,7 @@ class MainActivity : ComponentActivity() {
             withContext(Dispatchers.IO) { cameraHolder.capture() }
         } catch (e: Exception) {
             Log.e(TAG, "Capture failed", e)
-            goTo(Screen.Result(answer = "\u62CD\u6444\u5931\u8D25", steps = emptyList(), photoPath = null))
+            goTo(Screen.Result(answer = "拍摄失败", steps = emptyList(), photoPath = null))
             return
         }
 
@@ -247,34 +295,49 @@ class MainActivity : ComponentActivity() {
         val processed = withContext(Dispatchers.IO) {
             val src = BitmapFactory.decodeByteArray(rawBytes, 0, rawBytes.size)
                 ?: throw RuntimeException("Bitmap decode failed")
-            ImagePipeline.process(
+            val result = ImagePipeline.process(
                 original = src,
                 pitchDeg = imuProvider.pitchDeg,
                 rollDeg = imuProvider.rollDeg,
                 enableCorrection = config.textCorrectionEnabled,
             )
+            src.recycle()
+            result
         }
 
-        val photoPath = withContext(Dispatchers.IO) { savePhoto(processed) }
+        var photoPath: String? = null
+        var photoRecord: com.obwiler.weo.photo.PhotoRecord? = null
+        withContext(Dispatchers.IO) {
+            photoRecord = PhotoRepository.save(this@MainActivity, processed)
+            photoPath = photoRecord?.filePath
+            Log.d(TAG, "Photo archived: $photoPath")
+        }
 
+        val _aiStartMs = System.currentTimeMillis()
+        Log.d(TAG, "Calling AI: url=${config.apiBaseUrl.take(50)}, key=${config.apiKey.take(4)}..., model=${config.modelName}")
         val aiResult = aiClient?.let {
             try {
                 it.analyze(processed, config)
             } catch (e: Exception) {
                 Log.e(TAG, "AI analysis failed", e)
-                AiResult(
-                    answer = "AI \u5206\u6790\u5931\u8D25",
-                    steps = emptyList(),
-                    error = e.message,
-                    errorCategory = ErrorCategory.UNKNOWN
-                )
+                AiResult(answer = "AI 分析失败", steps = emptyList(), error = e.message, errorCategory = ErrorCategory.UNKNOWN)
             }
-        } ?: AiResult(
-            answer = "",
-            steps = emptyList(),
-            error = "AI \u670D\u52A1\u672A\u5C31\u7EEA",
-            errorCategory = ErrorCategory.UNKNOWN
-        )
+        } ?: AiResult(answer = "", steps = emptyList(), error = "AI 服务未就绪", errorCategory = ErrorCategory.UNKNOWN)
+
+        Log.d(TAG, "AI done in ${System.currentTimeMillis() - _aiStartMs}ms, answer=${aiResult.answer.take(30)}")
+
+        val record = photoRecord
+        if (record != null && aiResult.answer.isNotBlank() && aiResult.error == null) {
+            withContext(Dispatchers.IO) {
+                val newName = PhotoRename.generateName(aiResult.answer)
+                val renamed = PhotoRepository.rename(this@MainActivity, record, newName)
+                if (renamed != null) {
+                    photoPath = renamed.filePath
+                    photoRecord = PhotoRepository.updateSummary(renamed, aiResult.answer.take(80))
+                    Log.d(TAG, "Renamed: $newName")
+                }
+            }
+        }
 
         val resultScreen = Screen.Result(
             answer = aiResult.answer,
@@ -282,31 +345,8 @@ class MainActivity : ComponentActivity() {
             photoPath = photoPath
         )
 
-        // replace Camera with Result in nav stack
-        if (navStack.lastOrNull() is Screen.Camera) {
-            navStack.removeLast()
-        }
+        if (navStack.lastOrNull() is Screen.Camera) navStack.removeLast()
         navStack.addLast(resultScreen)
         currentScreenState.value = resultScreen
-    }
-
-    private fun savePhoto(bytes: ByteArray): String? {
-        return try {
-            val dir = File(
-                Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES),
-                "WEO"
-            )
-            if (!dir.exists()) {
-                dir.mkdirs()
-            }
-            val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
-            val file = File(dir, "IMG_${timestamp}.jpg")
-            file.writeBytes(bytes)
-            Log.d(TAG, "Photo saved: ${file.absolutePath}")
-            file.absolutePath
-        } catch (e: Exception) {
-            Log.e(TAG, "Save photo failed", e)
-            null
-        }
     }
 }
