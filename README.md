@@ -4,9 +4,7 @@
 [![Android](https://img.shields.io/badge/Android-12%2B-green)]()
 [![License](https://img.shields.io/badge/license-MIT-orange)]()
 
-> **"所见非所得，所得皆 AI。"**
->
-> 戴上一只眼看世界，AI 帮你把另一只补齐。奥贝之眼，替你把世界翻译成人话。
+> 还在为看不清眼前的东西干瞪眼？还在为外文菜单掏出手机翻译社死现场？奥贝之眼了解一下——戴上眼镜按快门，AI 秒回答案，比你对象回微信还快。兼容 DeepSeek、豆包、GPT 各路 AI 大神，想用谁用谁。12MP 摄像头加 IMU 防抖校正，歪着头也能拍清楚。PC 端一键部署，配置即推即用。开源免费，MIT 协议，拿去做啥都行，反正我们就是看你用得爽。
 
 **WEO** 是一款面向 MicroLED 单色屏智能眼镜（480×640）的 AI 视觉识别应用。按一下快门，AI 告诉你眼前是什么。
 
@@ -167,7 +165,3 @@ Wisdom Eye of Obwiler/
 ## 许可证
 
 MIT © 2026 Obwiler
-
----
-
-*"别问我看没看见——AI 看见了。"*
