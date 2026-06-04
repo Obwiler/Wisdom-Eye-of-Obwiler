@@ -27,30 +27,53 @@ object ImagePipeline {
         var current = original
         Log.d(TAG, "process: input=${current.width}x${current.height} pitch=$pitchDeg roll=$rollDeg")
 
+        // Downscale to 1280px max to keep memory low on the 1.8GB device.
+        // Use inSampleSize on decode is better but would require changing
+        // the call site; scaling here prevents OOM on repeated captures.
         val maxDim = maxOf(current.width, current.height)
-        if (maxDim > 1920) {
-            val scale = 1920f / maxDim
+        val targetMax = 1280
+        if (maxDim > targetMax) {
+            val scale = targetMax.toFloat() / maxDim
             val newW = (current.width * scale).toInt()
             val newH = (current.height * scale).toInt()
             current = Bitmap.createScaledBitmap(current, newW, newH, true)
-            Log.d(TAG, "process: scaled to ${newW}x${newH} in ${System.currentTimeMillis() - t0}ms")
+            Log.d(TAG, "process: scaled ${newW}x${newH} in ${System.currentTimeMillis() - t0}ms")
         }
 
-        // Fast tilt correction (IMU-based, ~1ms).
-        val t1 = System.currentTimeMillis()
-        current = tiltCorrection(current, pitchDeg, rollDeg)
-        Log.d(TAG, "process: tiltCorrection in ${System.currentTimeMillis() - t1}ms")
+        // Light tilt correction: clamp roll to +/-5 deg so we only fix
+        // minor head tilt. Large pitch (glasses pointing down) is normal
+        // and should NOT be corrected -- it distorts the image for AI.
+        if (enableCorrection && (abs(pitchDeg) > 2f || abs(rollDeg) > 2f)) {
+            val t1 = System.currentTimeMillis()
+            current = tiltCorrectionLight(current, pitchDeg, rollDeg)
+            Log.d(TAG, "process: tiltCorrection in ${System.currentTimeMillis() - t1}ms")
+        }
 
-        val t2 = System.currentTimeMillis()
-        current = histogramStretch(current)
-        Log.d(TAG, "process: histogramStretch in ${System.currentTimeMillis() - t2}ms")
+        // histogramStretch removed: it took 2.8s and allocated 11MB on
+        // a 1920x1440 image, causing OOM/LMK kill on second capture.
+        // AI vision models handle lighting variance naturally.
 
         val t3 = System.currentTimeMillis()
         val jpeg = compressToJpeg(current)
         Log.d(TAG, "process: compressToJpeg in ${System.currentTimeMillis() - t3}ms")
 
-        Log.d(TAG, "process: total=${System.currentTimeMillis() - t0}ms size=${jpeg.size}B correction=$enableCorrection")
+        Log.d(TAG, "process: total=${System.currentTimeMillis() - t0}ms size=${jpeg.size}B")
         return jpeg
+    }
+
+    /**
+     * Light tilt correction: only fixes roll up to +/-5 deg.
+     * Does NOT apply pitch perspective correction ? glasses naturally
+     * point downward (pitch=-78 deg) and correcting that distorts the
+     * image for AI analysis.
+     */
+    private fun tiltCorrectionLight(src: Bitmap, pitchDeg: Float, rollDeg: Float): Bitmap {
+        val cr = rollDeg.coerceIn(-5f, 5f)
+        if (cr == 0f) return src
+        val matrix = Matrix().apply {
+            postRotate(-cr, src.width / 2f, src.height / 2f)
+        }
+        return Bitmap.createBitmap(src, 0, 0, src.width, src.height, matrix, true)
     }
 
     fun correctDocument(src: Bitmap): Bitmap {

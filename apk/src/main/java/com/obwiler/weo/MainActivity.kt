@@ -7,6 +7,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.graphics.BitmapFactory
+import android.graphics.BitmapFactory.Options
 import android.os.Build
 import android.os.Bundle
 import android.os.Environment
@@ -295,7 +296,11 @@ class MainActivity : ComponentActivity() {
         val config = configHolder.load()
         val processed = withContext(Dispatchers.IO) {
             val tDecode = System.currentTimeMillis()
-            val src = BitmapFactory.decodeByteArray(rawBytes, 0, rawBytes.size)
+            // Decode at 1/2 resolution to halve memory on the 1.8GB device.
+            // The RG-glasses capture at 2048x1536; inSampleSize=2 yields
+            // 1024x768 which is plenty for AI analysis.
+            val opts = Options().apply { inSampleSize = 2 }
+            val src = BitmapFactory.decodeByteArray(rawBytes, 0, rawBytes.size, opts)
                 ?: throw RuntimeException("Bitmap decode failed")
             Log.d(TAG, "handleShutter: decoded ${src.width}x${src.height} in ${System.currentTimeMillis() - tDecode}ms")
             val result = ImagePipeline.process(
