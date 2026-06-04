@@ -1,0 +1,59 @@
+﻿# ── Python ──────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyc
+*.pyo
+*.egg-info/
+*.egg
+.eggs/
+dist/
+*.spec
+_python/
+build/
+*.pkg
+*.toc
+*.pyz
+*.zip
+warn-*.txt
+xref-*.html
+
+# ── Android ─────────────────────────────────────
+/.gradle/
+/build/
+*.apk
+*.jks
+*.keystore
+keystore.properties
+local.properties
+*.aar
+
+# ── IDE / Editor ────────────────────────────────
+.idea/
+*.iml
+.vscode/
+*.swp
+*.swo
+*~
+
+# ── OS ──────────────────────────────────────────
+.DS_Store
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# ── Project Specific ────────────────────────────
+_screenshot.png
+*.log
+apk_err.txt
+apk_out.txt
+data/*.keystore
+data/rokid_sdk/
+pc_tool/lib/apk/
+pc_tool/lib/scrcpy/
+
+# ── Secrets ─────────────────────────────────────
+*.key
+*.pem
+.env
+.env.*
+credentials.json

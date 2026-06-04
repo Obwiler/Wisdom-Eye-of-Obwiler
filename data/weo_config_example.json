@@ -1,0 +1,12 @@
+{
+    "apiBaseUrl": "https://api.deepseek.com/v1",
+    "apiKey": "",
+    "modelName": "deepseek-chat",
+    "systemPrompt": "请分析图片内容，用中文回答。",
+    "userPrompt": "请分析图片内容",
+    "temperature": 0.3,
+    "maxTokens": 1500,
+    "timeoutMs": 30000,
+    "textCorrectionEnabled": true,
+    "maxAnswerChars": 2000
+}

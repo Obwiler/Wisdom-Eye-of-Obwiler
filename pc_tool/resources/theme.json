@@ -1,0 +1,33 @@
+{
+  "name": "WEO Dark",
+  "colors": {
+    "bg_primary": "#0A0A0A",
+    "bg_secondary": "#141414",
+    "bg_card": "#1A1A1A",
+    "accent": "#00FF00",
+    "accent_dim": "#00CC00",
+    "accent_subtle": "rgba(0,255,0,0.08)",
+    "text_primary": "#E0E0E0",
+    "text_secondary": "#888888",
+    "text_dim": "#555555",
+    "border": "rgba(0,255,0,0.15)",
+    "danger": "#FF4444",
+    "warning": "#FFAA00",
+    "success": "#00CC66"
+  },
+  "fonts": {
+    "main": "Segoe UI",
+    "mono": "Cascadia Code",
+    "size_xs": 10,
+    "size_sm": 11,
+    "size_md": 13,
+    "size_lg": 16,
+    "size_xl": 22
+  },
+  "spacing": {
+    "xs": 2, "sm": 4, "md": 8, "lg": 16, "xl": 24
+  },
+  "radius": {
+    "sm": 4, "md": 6, "lg": 8
+  }
+}

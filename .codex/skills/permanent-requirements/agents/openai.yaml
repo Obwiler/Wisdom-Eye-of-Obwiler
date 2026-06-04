@@ -1,0 +1,6 @@
+﻿interface:
+  display_name: "永久要求"
+  short_description: "用户对 Codex 的永久行为要求"
+  default_prompt: "请先读取 $permanent-requirements 中的所有要求并严格遵守"
+policy:
+  allow_implicit_invocation: false
